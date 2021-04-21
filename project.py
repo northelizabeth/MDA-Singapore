@@ -21,11 +21,12 @@ OAK PARK CARLOW
 class Data:
 
     def __init__(self):
-        self.cnt = 1  # this is counter for how many files has been already proceed, just to see the progress
-        self.files = 'C:/Users/whatever/path/to/folder/with_files'  # path to folder with files INSERT YOUR OWN ONE HERE
-        self.excel = 'C:/Users/whatever/path/to/final/excel_file.xlsx'  #  path to directory where xlsx fil will be created # INSERT YOUR OWN ONE HERE WITH .xlxs EXTENTION
+        self.cnt = 0  # this is counter for how many files has been already proceed, just to see the progress
+        self.files = 'C:/Users/kinan/Desktop/Bioinformatyka/Modern Data Analytics/temp_min'  # path to folder with files INSERT YOUR OWN ONE HERE
+        self.excel = 'C:/Users/kinan/Desktop/temp_min.xlsx'  #  path to directory where xlsx fil will be created # INSERT YOUR OWN ONE HERE WITH .xlxs EXTENTION
         self.pre = ''
         self.date = []  # contains all dates
+        self.stations = []  # contains stations' info (ISO code, localization, id)
         self.all_data = []  # contains data from every file
 
     def df_prepare(self, text):
@@ -66,6 +67,7 @@ class Data:
             if (int(row['START']) <= 19961231 and int(row['STOP']) > 20191231) and (row['STAID']) not in stations:
                 stations.append(row['STAID'])
                 country.append(str(row['CN']) + ' ' + str(row['SOUNAME']) + ' ' + str(row['STAID']))
+        self.stations = country
 
         return stations, country
 
@@ -86,7 +88,7 @@ class Data:
 
     def file_to_excel(self, file):
         """
-        Function to open file, pull out data, save to excel
+        Function to open file, pull out data, save data as list
         """
 
         with open(Path(self.files)/file, encoding="utf8") as file:
@@ -96,6 +98,8 @@ class Data:
         # if for some reason file is not matching the description in source.txt, because the measurement
         # starts after 1996-01-01 it is skipped and function returns None value
         if int(df['DATE'].iloc[0]) > 19960101:
+            print('DELETING: ', self.stations[self.cnt]) # deleting station from list
+            del self.stations[self.cnt]
             return False
 
         self.cnt += 1
@@ -112,6 +116,8 @@ class Data:
     def write_to_excel(self, countries):
         wb = xlsxwriter.Workbook(self.excel)
         sheet = wb.add_worksheet()
+        print(len(self.all_data))
+        print(len(countries))
         for i in range(0, len(self.date)):
             sheet.write(0, i + 1, str(self.date[i]))  # writing date in first row
         cnt = 1
