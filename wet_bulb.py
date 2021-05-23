@@ -19,7 +19,7 @@ class Data:
     def reading(self):
         # reading excel file
         # directory below should contains only cleaned xlsx files
-        p = Path('C:/Users/your/directory/cleaned')
+        p = Path('C:/Users/kinan/Desktop/Bioinformatyka/Modern Data Analytics/cleaned')
         files = list(p.glob('*.xlsx'))
         files.sort  # sort in alphabetical order
         self.hum = pd.read_excel(files[0]).drop(['FR'], axis=1)
@@ -40,23 +40,26 @@ class Data:
                 self.wb.append(0.735*ta + 0.0374*rh + 0.00292*ta*rh + 7.619*sr - 4.557*(sr**2) - 0.0572*ws - 4.064)
 
     def write_to_excel(self):
-        wb = xlsxwriter.Workbook('wet_bulb.xlsx')
+        wb = xlsxwriter.Workbook('wet_bulb2.xlsx')
         sheet = wb.add_worksheet()
-        print(len(self.wb))
         cnt = 0
 
         for i in range(1, len(self.columns)):
+            cnt_row = 0
             sheet.write(0, i, self.columns[i])
             for j in range(0, len(self.rows)):
-                if i == 1:
-                    sheet.write(j+1, 0, self.rows[j])
-                sheet.write(j+1, i, self.wb[cnt])
+                if 3 < int(self.rows[j][5:7]) < 10:
+                    print(j+1, i, self.wb[cnt])
+                    sheet.write(cnt_row+1, i, self.wb[cnt])
+                    if i == 1:
+                        sheet.write(cnt_row+1, 0, self.rows[j])
+                    cnt_row += 1
                 cnt += 1
-
         wb.close()
 
     def percentile_90(self):
-        wb = pd.read_excel('wet_bulb.xlsx') # read the we_bulb file from current working directory
+        wb = pd.read_excel('wet_bulb_quarters.xlsx') # read the we_bulb file from current working directory
+
         de_90 = np.percentile(wb['DE'], 90)
         es_90 = np.percentile(wb['ES'], 90)
         nl_90 = np.percentile(wb['NL'], 90)
@@ -64,16 +67,37 @@ class Data:
         print(de_90, es_90, nl_90)
 
         for i in range(1, 4):
-            cnt = 0
-            for j in range(0, len(wb.iloc[:, i])):
-                # if percentile from day x and day before x is above percentile value add 1 to counter
+            cnt_h = 0  # number of heatwaves
+            in_row = False
+            to_break = 0  # counter for the days after heatwave
+            start = []  # date of first day of heatwave
+            stop = []  # dat of last day of heatwave
+            first = True  # first day of heatwave
+
+            for j in range (0, len(wb.iloc[:, i])):
                 if wb.iloc[j, i] > per[i-1] and wb.iloc[j-1, i] > per[i-1]:
-                    # print(wb.iloc[j, 0])
-                    cnt += 1
-            self.heat.append(cnt)
-            print(cnt)
+                    if first:
+                        start.append(wb.iloc[j, 0])
+                        first = False
+                    in_row = True  # if True we are within heatwave
+                    to_break = 0  # in heatwave, number after heatwave = 0
+                else:
+                    # counting days with temp below percentile value
+                    if in_row:
+                        to_break += 1
 
+                    # if we have more then 7 days after high temperatures it is the end of heatwave
+                    if to_break > 7:
+                        to_break = 0
+                        in_row = False  # end of heatwave
+                        cnt_h += 1
+                        first = True
+                        stop.append(wb.iloc[j, 0])
+                        #print("HEAT:"+ wb.iloc[j, 0])
 
+            print(cnt_h)
+            print(start)
+            print(stop)
 
 
 wet_bulb = Data()
